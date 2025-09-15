@@ -8,9 +8,28 @@ import sys
 import logging
 import webbrowser
 import threading
+import time
+import psutil
+import platform
 from datetime import datetime
 from pathlib import Path
 import shutil
+from collections import defaultdict, deque
+from enum import Enum
+import configparser
+import tempfile
+
+# Import enhanced service classes
+from toolbar_services import (
+    ExecutionStatus, EditorType, SettingsManager, 
+    EnhancedFileManager, ExecutionStatusManager, AdvancedExecutionEngine
+)
+
+# Import enhanced UI components
+from toolbar_ui_components import (
+    StatusIndicatorWidget, ProgressManager, SettingsDialog,
+    ExecutionHistoryDialog, EnhancedTooltip
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -39,7 +58,8 @@ try:
 except ImportError:
     DND_AVAILABLE = False
 
-logger.warning("tkinterdnd2 not available. Drag and drop will be disabled.")
+if not DND_AVAILABLE:
+    logger.warning("tkinterdnd2 not available. Drag and drop will be disabled.")
 
 class ModernVioletTheme:
     """Modern violet/purple theme inspired by VS Code dark"""
@@ -80,6 +100,98 @@ class ModernVioletTheme:
     
     def get_color(self, name):
         return self.colors.get(name, self.colors['bg'])
+
+class ExecutionStatusManager:
+    """Manages execution status tracking and monitoring"""
+    def __init__(self):
+        self.execution_history = deque(maxlen=1000)
+        self.active_executions = {}
+        self.status_callbacks = defaultdict(list)
+        self.performance_stats = defaultdict(list)
+    
+    def start_execution(self, script_id, script_path, command):
+        """Start tracking an execution"""
+        execution_data = {
+            'id': str(uuid.uuid4()),
+            'script_id': script_id,
+            'script_path': script_path,
+            'command': command,
+            'start_time': datetime.now(),
+            'status': ExecutionStatus.RUNNING,
+            'process': None,
+            'output': [],
+            'error_output': []
+        }
+        self.active_executions[execution_data['id']] = execution_data
+        self._notify_status_change(script_id, ExecutionStatus.RUNNING, execution_data)
+        return execution_data['id']
+    
+    def update_execution_status(self, execution_id, status, output=None, error=None):
+        """Update execution status"""
+        if execution_id in self.active_executions:
+            execution_data = self.active_executions[execution_id]
+            execution_data['status'] = status
+            
+            if output:
+                execution_data['output'].append(output)
+            if error:
+                execution_data['error_output'].append(error)
+            
+            if status in [ExecutionStatus.SUCCESS, ExecutionStatus.ERROR, ExecutionStatus.CANCELLED]:
+                execution_data['end_time'] = datetime.now()
+                execution_data['duration'] = (execution_data['end_time'] - execution_data['start_time']).total_seconds()
+                self.execution_history.append(execution_data.copy())
+                self._update_performance_stats(execution_data)
+                del self.active_executions[execution_id]
+            
+            self._notify_status_change(execution_data['script_id'], status, execution_data)
+    
+    def _notify_status_change(self, script_id, status, execution_data):
+        """Notify registered callbacks of status changes"""
+        for callback in self.status_callbacks[script_id]:
+            try:
+                callback(status, execution_data)
+            except Exception as e:
+                logger.error(f"Error in status callback: {e}")
+    
+    def _update_performance_stats(self, execution_data):
+        """Update performance statistics"""
+        script_path = execution_data['script_path']
+        duration = execution_data.get('duration', 0)
+        self.performance_stats[script_path].append({
+            'duration': duration,
+            'timestamp': execution_data['end_time'],
+            'status': execution_data['status']
+        })
+    
+    def register_status_callback(self, script_id, callback):
+        """Register a callback for status changes"""
+        self.status_callbacks[script_id].append(callback)
+    
+    def get_execution_history(self, script_path=None, limit=50):
+        """Get execution history"""
+        history = list(self.execution_history)
+        if script_path:
+            history = [h for h in history if h['script_path'] == script_path]
+        return history[-limit:]
+    
+    def get_performance_stats(self, script_path):
+        """Get performance statistics for a script"""
+        stats = self.performance_stats.get(script_path, [])
+        if not stats:
+            return None
+        
+        durations = [s['duration'] for s in stats]
+        success_count = len([s for s in stats if s['status'] == ExecutionStatus.SUCCESS])
+        
+        return {
+            'total_executions': len(stats),
+            'success_rate': success_count / len(stats) * 100,
+            'avg_duration': sum(durations) / len(durations),
+            'min_duration': min(durations),
+            'max_duration': max(durations),
+            'last_execution': stats[-1]['timestamp']
+        }
 
 class WindowsIconExtractor:
     def __init__(self):
@@ -182,6 +294,112 @@ class WindowsIconExtractor:
             return img
 
 icon_extractor = WindowsIconExtractor()
+
+class EnhancedFileManager:
+    """Enhanced file management operations"""
+    def __init__(self):
+        self.supported_editors = self._detect_available_editors()
+        self.default_editor = self._get_default_editor()
+    
+    def _detect_available_editors(self):
+        """Detect available editors on the system"""
+        editors = {}
+        editor_commands = {
+            EditorType.VSCODE: ['code', 'code.exe'],
+            EditorType.NOTEPADPP: ['notepad++', 'notepad++.exe'],
+            EditorType.SUBLIME: ['subl', 'sublime_text.exe'],
+            EditorType.ATOM: ['atom', 'atom.exe'],
+            EditorType.VIM: ['vim', 'vim.exe'],
+            EditorType.NANO: ['nano'],
+            EditorType.GEDIT: ['gedit']
+        }
+        
+        for editor_type, commands in editor_commands.items():
+            for cmd in commands:
+                if shutil.which(cmd):
+                    editors[editor_type] = cmd
+                    break
+        
+        return editors
+    
+    def _get_default_editor(self):
+        """Get the default editor"""
+        priority_order = [EditorType.VSCODE, EditorType.NOTEPADPP, EditorType.SUBLIME, EditorType.ATOM]
+        for editor in priority_order:
+            if editor in self.supported_editors:
+                return editor
+        return list(self.supported_editors.keys())[0] if self.supported_editors else None
+    
+    def open_in_editor(self, file_path, editor_type=None):
+        """Open file in specified editor"""
+        if not editor_type:
+            editor_type = self.default_editor
+        
+        if editor_type not in self.supported_editors:
+            raise ValueError(f"Editor {editor_type} not available")
+        
+        command = self.supported_editors[editor_type]
+        subprocess.Popen([command, file_path])
+    
+    def open_folder(self, folder_path):
+        """Open folder in system file manager"""
+        try:
+            if platform.system() == "Windows":
+                os.startfile(folder_path)
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.Popen(["open", folder_path])
+            else:  # Linux
+                subprocess.Popen(["xdg-open", folder_path])
+        except Exception as e:
+            logger.error(f"Error opening folder: {e}")
+            raise
+    
+    def open_terminal(self, folder_path):
+        """Open terminal in specified folder"""
+        try:
+            if platform.system() == "Windows":
+                subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", f"cd /d {folder_path}"])
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.Popen(["open", "-a", "Terminal", folder_path])
+            else:  # Linux
+                subprocess.Popen(["gnome-terminal", "--working-directory", folder_path])
+        except Exception as e:
+            logger.error(f"Error opening terminal: {e}")
+            raise
+    
+    def rename_file(self, old_path, new_name):
+        """Rename a file safely"""
+        try:
+            old_path = Path(old_path)
+            new_path = old_path.parent / new_name
+            
+            if new_path.exists():
+                raise FileExistsError(f"File {new_name} already exists")
+            
+            old_path.rename(new_path)
+            return str(new_path)
+        except Exception as e:
+            logger.error(f"Error renaming file: {e}")
+            raise
+    
+    def get_file_properties(self, file_path):
+        """Get detailed file properties"""
+        try:
+            path = Path(file_path)
+            stat = path.stat()
+            
+            return {
+                'name': path.name,
+                'size': stat.st_size,
+                'modified': datetime.fromtimestamp(stat.st_mtime),
+                'created': datetime.fromtimestamp(stat.st_ctime),
+                'is_executable': os.access(file_path, os.X_OK),
+                'extension': path.suffix,
+                'parent': str(path.parent)
+            }
+        except Exception as e:
+            logger.error(f"Error getting file properties: {e}")
+            return None
 
 class IconEditorDialog:
     def __init__(self, parent, item_data):
