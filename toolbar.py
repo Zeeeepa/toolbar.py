@@ -12,6 +12,11 @@ from datetime import datetime
 from pathlib import Path
 import shutil
 
+# Import our new modules
+from execution_manager import ExecutionManager, ExecutionStatus, ExecutionTask
+from file_manager import FileManager
+from settings_manager import SettingsManager
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -877,17 +882,32 @@ class ModernTaskbar:
         self.root.title("Modern Taskbar")
         self.theme = ModernVioletTheme()
         
+        # Initialize managers
+        self.execution_manager = ExecutionManager()
+        self.file_manager = FileManager()
+        self.settings_manager = SettingsManager()
+        
         self.config_file = "taskbar_config.json"
         self.scripts = []
         self.trays = []
         self.tray_windows = {}
-        self.transparency = 95
+        self.transparency = self.settings_manager.get('ui.transparency', 0.95) * 100
+        
+        # Status tracking
+        self.file_status = {}  # file_path -> ExecutionStatus
+        self.status_indicators = {}  # file_path -> widget
+        
+        # Setup callbacks
+        self.execution_manager.add_status_callback(self.on_execution_status_change)
+        self.settings_manager.add_change_callback('ui.transparency', self.on_transparency_change)
+        self.settings_manager.add_change_callback('ui.always_on_top', self.on_always_on_top_change)
         
         self.load_config()
         self.setup_window()
         self.create_taskbar()
         self.position_taskbar()
         self.bind_events()
+        self.load_file_statuses()
     
     def setup_window(self):
         """Setup main window"""
@@ -1310,6 +1330,105 @@ class ModernTaskbar:
                 json.dump(config, f, indent=2)
         except Exception as e:
             logger.error(f"Error saving config: {e}")
+    
+    # Enhanced methods for execution tracking and file management
+    def load_file_statuses(self):
+        """Load execution statuses for all files"""
+        try:
+            for script in self.scripts:
+                file_path = script.get('path')
+                if file_path:
+                    status = self.execution_manager.get_file_last_status(file_path)
+                    if status:
+                        self.file_status[file_path] = status
+        except Exception as e:
+            logger.error(f"Error loading file statuses: {e}")
+    
+    def on_execution_status_change(self, task: ExecutionTask):
+        """Handle execution status changes"""
+        try:
+            file_path = task.file_path
+            self.file_status[file_path] = task.status
+            
+            # Update status indicator if it exists
+            if file_path in self.status_indicators:
+                self.update_status_indicator(file_path, task.status)
+            
+        except Exception as e:
+            logger.error(f"Error handling status change: {e}")
+    
+    def update_status_indicator(self, file_path: str, status: ExecutionStatus):
+        """Update visual status indicator"""
+        try:
+            if file_path not in self.status_indicators:
+                return
+            
+            indicator = self.status_indicators[file_path]
+            
+            # Color mapping for status
+            status_colors = {
+                ExecutionStatus.IDLE: self.theme.get_color('text_secondary'),
+                ExecutionStatus.RUNNING: self.theme.get_color('text_warning'),
+                ExecutionStatus.SUCCESS: self.theme.get_color('text_success'),
+                ExecutionStatus.ERROR: self.theme.get_color('text_error'),
+                ExecutionStatus.TIMEOUT: self.theme.get_color('text_error'),
+                ExecutionStatus.CANCELLED: self.theme.get_color('text_secondary')
+            }
+            
+            # Status symbols
+            status_symbols = {
+                ExecutionStatus.IDLE: "●",
+                ExecutionStatus.RUNNING: "⟳",
+                ExecutionStatus.SUCCESS: "✓",
+                ExecutionStatus.ERROR: "✗",
+                ExecutionStatus.TIMEOUT: "⏱",
+                ExecutionStatus.CANCELLED: "⊘"
+            }
+            
+            color = status_colors.get(status, self.theme.get_color('text_secondary'))
+            symbol = status_symbols.get(status, "●")
+            
+            indicator.config(text=symbol, fg=color)
+            
+        except Exception as e:
+            logger.error(f"Error updating status indicator: {e}")
+    
+    def execute_file_enhanced(self, file_path: str):
+        """Execute file with enhanced tracking"""
+        try:
+            if not os.path.exists(file_path):
+                messagebox.showerror("Error", f"File not found: {file_path}")
+                return
+            
+            # Get execution settings
+            timeout = self.settings_manager.get('execution.default_timeout', 30.0)
+            
+            # Execute with status tracking
+            task_id = self.execution_manager.execute_file(
+                file_path=file_path,
+                timeout=timeout
+            )
+            
+            logger.info(f"Started execution of {file_path} with task ID {task_id}")
+            
+        except Exception as e:
+            logger.error(f"Error executing file: {e}")
+            messagebox.showerror("Execution Error", f"Failed to execute file: {e}")
+    
+    def on_transparency_change(self, key_path: str, old_value: float, new_value: float):
+        """Handle transparency setting change"""
+        try:
+            self.transparency = new_value * 100
+            self.root.attributes('-alpha', new_value)
+        except Exception as e:
+            logger.error(f"Error changing transparency: {e}")
+    
+    def on_always_on_top_change(self, key_path: str, old_value: bool, new_value: bool):
+        """Handle always on top setting change"""
+        try:
+            self.root.attributes('-topmost', new_value)
+        except Exception as e:
+            logger.error(f"Error changing always on top: {e}")
 
 def main():
     try:
