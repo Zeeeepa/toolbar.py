@@ -12,10 +12,13 @@ from datetime import datetime
 from pathlib import Path
 import shutil
 
-# Import our new modules
+# Import our enhanced modules
 from execution_manager import ExecutionManager, ExecutionStatus, ExecutionTask
 from file_manager import FileManager
 from settings_manager import SettingsManager
+from error_handler import ErrorHandler, ErrorContext, ErrorSeverity, ErrorCategory
+from integration_manager import IntegrationManager, IntegrationType
+from validation_framework import ValidationFramework, ValidationLevel
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -882,10 +885,27 @@ class ModernTaskbar:
         self.root.title("Modern Taskbar")
         self.theme = ModernVioletTheme()
         
-        # Initialize managers
-        self.execution_manager = ExecutionManager()
-        self.file_manager = FileManager()
-        self.settings_manager = SettingsManager()
+        # Initialize enhanced managers with comprehensive error handling
+        try:
+            self.error_handler = ErrorHandler()
+            self.execution_manager = ExecutionManager()
+            self.file_manager = FileManager()
+            self.settings_manager = SettingsManager()
+            self.integration_manager = IntegrationManager()
+            self.validation_framework = ValidationFramework()
+            
+            # Register error callbacks
+            self._setup_error_handling()
+            
+            # Setup integrations
+            self._setup_integrations()
+            
+            logger.info("All managers initialized successfully")
+            
+        except Exception as e:
+            logger.critical(f"Failed to initialize managers: {e}")
+            # Fallback to basic functionality
+            self._initialize_fallback_mode()
         
         self.config_file = "taskbar_config.json"
         self.scripts = []
@@ -1429,6 +1449,84 @@ class ModernTaskbar:
             self.root.attributes('-topmost', new_value)
         except Exception as e:
             logger.error(f"Error changing always on top: {e}")
+    
+    def _setup_error_handling(self):
+        """Setup comprehensive error handling"""
+        try:
+            # Register error callbacks for different categories
+            self.error_handler.add_error_callback(
+                ErrorCategory.EXECUTION, 
+                self._handle_execution_error
+            )
+            self.error_handler.add_error_callback(
+                ErrorCategory.FILE_OPERATION, 
+                self._handle_file_error
+            )
+            self.error_handler.add_error_callback(
+                ErrorCategory.UI, 
+                self._handle_ui_error
+            )
+            
+            logger.info("Error handling setup complete")
+            
+        except Exception as e:
+            logger.error(f"Failed to setup error handling: {e}")
+    
+    def _setup_integrations(self):
+        """Setup system integrations"""
+        try:
+            # Add file system integration for script management
+            self.integration_manager.add_integration(
+                "file_system",
+                IntegrationType.FILE_SYSTEM,
+                {
+                    "base_path": ".",
+                    "allowed_extensions": [".py", ".bat", ".cmd", ".ps1", ".js", ".exe"],
+                    "max_file_size": 50 * 1024 * 1024  # 50MB
+                }
+            )
+            
+            # Add command line integration for script execution
+            self.integration_manager.add_integration(
+                "command_line",
+                IntegrationType.COMMAND_LINE,
+                {
+                    "working_dir": os.getcwd(),
+                    "timeout": 300,  # 5 minutes
+                    "environment": {}
+                }
+            )
+            
+            logger.info("System integrations setup complete")
+            
+        except Exception as e:
+            logger.error(f"Failed to setup integrations: {e}")
+    
+    def _initialize_fallback_mode(self):
+        """Initialize in fallback mode with basic functionality"""
+        try:
+            logger.warning("Initializing in fallback mode")
+            
+            # Initialize only essential components
+            self.execution_manager = None
+            self.file_manager = None
+            self.settings_manager = None
+            self.integration_manager = None
+            self.validation_framework = None
+            
+            # Basic status tracking
+            self.file_status = {}
+            self.status_indicators = {}
+            
+            # Show warning to user
+            self.root.after(1000, lambda: messagebox.showwarning(
+                "Fallback Mode", 
+                "Application started in fallback mode due to initialization errors. "
+                "Some features may be limited."
+            ))
+            
+        except Exception as e:
+            logger.critical(f"Even fallback mode failed: {e}")
 
 def main():
     try:
