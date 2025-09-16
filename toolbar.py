@@ -28,7 +28,7 @@ except ImportError:
     WINDOWS_MODULES_AVAILABLE = False
 
 try:
-    from PIL import Image, ImageTk, ImageDraw
+    from PIL import Image, ImageTk, ImageDraw, ImageFont
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
@@ -38,8 +38,7 @@ try:
     DND_AVAILABLE = True
 except ImportError:
     DND_AVAILABLE = False
-
-logger.warning("tkinterdnd2 not available. Drag and drop will be disabled.")
+    logger.warning("tkinterdnd2 not available. Drag and drop will be disabled.")
 
 class ModernVioletTheme:
     """Modern violet/purple theme inspired by VS Code dark"""
@@ -91,7 +90,7 @@ class WindowsIconExtractor:
     def get_file_icon(self, file_path, size=32):
         try:
             if not WINDOWS_MODULES_AVAILABLE or not PIL_AVAILABLE:
-                return None
+                return self.create_fallback_icon(file_path, size)
             
             cache_key = f"{file_path}_{size}"
             if cache_key in self.icon_cache:
@@ -120,40 +119,80 @@ class WindowsIconExtractor:
                     self.icon_cache[cache_key] = img
                     return img
             
-            elif os.path.isdir(file_path):
-                img = Image.new('RGBA', (size, size), (255, 215, 0, 255))
-                draw = ImageDraw.Draw(img)
-                draw.rectangle([2, 8, size-2, size-2], fill=(255, 215, 0, 255))
-                draw.rectangle([2, 4, size-2, 10], fill=(255, 235, 59, 255))
-                return img
-            
-            else:
-                img = Image.new('RGBA', (size, size), (187, 134, 252, 255))
-                draw = ImageDraw.Draw(img)
-                draw.rectangle([2, 2, size-2, size-2], fill=(187, 134, 252, 255))
-                draw.rectangle([2, 2, size-2, 8], fill=(206, 147, 216, 255))
-                return img
+            return self.create_fallback_icon(file_path, size)
                 
         except Exception as e:
             logger.error(f"Error extracting icon for {file_path}: {e}")
+            return self.create_fallback_icon(file_path, size)
+    
+    def create_fallback_icon(self, file_path, size=32):
+        """Create fallback icon based on file type"""
+        try:
+            if not PIL_AVAILABLE:
+                return None
+            
+            if os.path.isdir(file_path):
+                # Folder icon
+                img = Image.new('RGBA', (size, size), (255, 215, 0, 200))
+                draw = ImageDraw.Draw(img)
+                draw.rectangle([2, size//4, size-2, size-2], fill=(255, 215, 0, 255), outline=(255, 235, 59, 255))
+                draw.rectangle([2, 2, size//2, size//4 + 4], fill=(255, 235, 59, 255))
+                return img
+            
+            file_ext = os.path.splitext(file_path)[1].lower()
+            
+            if file_ext in ['.py']:
+                # Python file
+                return self.create_text_icon("PY", "#4fc3f7", size)
+            elif file_ext in ['.js']:
+                # JavaScript file
+                return self.create_text_icon("JS", "#ffb74d", size)
+            elif file_ext in ['.bat', '.cmd']:
+                # Batch file
+                return self.create_text_icon("BAT", "#f48fb1", size)
+            elif file_ext in ['.ps1']:
+                # PowerShell file
+                return self.create_text_icon("PS", "#4fc3f7", size)
+            elif file_ext in ['.exe']:
+                # Executable
+                return self.create_text_icon("EXE", "#bb86fc", size)
+            elif file_ext in ['.txt', '.log']:
+                # Text file
+                return self.create_text_icon("TXT", "#e0e0f0", size)
+            elif file_ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']:
+                # Image file
+                return self.create_text_icon("IMG", "#4fc3f7", size)
+            else:
+                # Generic file
+                return self.create_text_icon("FILE", "#bb86fc", size)
+                
+        except Exception as e:
+            logger.error(f"Error creating fallback icon: {e}")
             return None
     
-    def create_custom_icon(self, text, bg_color="#bb86fc", text_color="#1e1e2f", size=32):
+    def create_text_icon(self, text, bg_color="#bb86fc", size=32):
         try:
             if not PIL_AVAILABLE:
                 return None
             
             img = Image.new('RGBA', (size, size), bg_color)
             draw = ImageDraw.Draw(img)
-            bbox = draw.textbbox((0, 0), text)
+            
+            # Try to use a font, fallback to default if not available
+            try:
+                font = ImageFont.truetype("arial.ttf", size//4)
+            except:
+                font = ImageFont.load_default()
+            
+            bbox = draw.textbbox((0, 0), text, font=font)
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
             x = (size - text_width) // 2
             y = (size - text_height) // 2
-            draw.text((x, y), text, fill=text_color)
+            draw.text((x, y), text, fill="#1e1e2f", font=font)
             return img
         except Exception as e:
-            logger.error(f"Error creating custom icon: {e}")
+            logger.error(f"Error creating text icon: {e}")
             return None
     
     def save_custom_icon(self, img, item_id):
@@ -228,6 +267,7 @@ class IconEditorDialog:
                     fg=self.theme.get_color('text_accent'),
                     font=('Segoe UI', 14, 'bold')).pack(pady=(0, 15))
             
+            # Icon display frame
             icon_frame = tk.Frame(main_frame, bg=self.theme.get_color('bg_tertiary'), relief='solid', bd=1)
             icon_frame.pack(pady=10, fill=tk.X)
             
@@ -240,41 +280,55 @@ class IconEditorDialog:
             
             self.load_current_icon()
             
+            # Options frame
             options_frame = tk.Frame(main_frame, bg=self.theme.get_color('bg'))
             options_frame.pack(fill=tk.X, pady=10)
             
             tk.Button(options_frame, text="Use File Icon",
                       command=self.use_file_icon,
                       bg=self.theme.get_color('bg_tertiary'),
-                      fg=self.theme.get_color('text')).pack(fill=tk.X, pady=2)
+                      fg=self.theme.get_color('text'),
+                      font=('Segoe UI', 9),
+                      relief='flat').pack(fill=tk.X, pady=2)
             
             tk.Button(options_frame, text="Create Text Icon",
                       command=self.create_text_icon,
                       bg=self.theme.get_color('bg_tertiary'),
-                      fg=self.theme.get_color('text')).pack(fill=tk.X, pady=2)
+                      fg=self.theme.get_color('text'),
+                      font=('Segoe UI', 9),
+                      relief='flat').pack(fill=tk.X, pady=2)
             
             tk.Button(options_frame, text="Load Image Icon",
                       command=self.load_image_icon,
                       bg=self.theme.get_color('bg_tertiary'),
-                      fg=self.theme.get_color('text')).pack(fill=tk.X, pady=2)
+                      fg=self.theme.get_color('text'),
+                      font=('Segoe UI', 9),
+                      relief='flat').pack(fill=tk.X, pady=2)
             
             tk.Button(options_frame, text="Remove Custom Icon",
                       command=self.remove_icon,
                       bg=self.theme.get_color('bg_tertiary'),
-                      fg=self.theme.get_color('text')).pack(fill=tk.X, pady=2)
+                      fg=self.theme.get_color('text'),
+                      font=('Segoe UI', 9),
+                      relief='flat').pack(fill=tk.X, pady=2)
             
+            # Button frame
             btn_frame = tk.Frame(main_frame, bg=self.theme.get_color('bg'))
             btn_frame.pack(fill=tk.X, pady=20)
             
             tk.Button(btn_frame, text="Save",
                      command=self.save_icon,
                      bg=self.theme.get_color('bg_tertiary'),
-                     fg=self.theme.get_color('text')).pack(side=tk.RIGHT, padx=5)
+                     fg=self.theme.get_color('text'),
+                     font=('Segoe UI', 9),
+                     relief='flat').pack(side=tk.RIGHT, padx=5)
             
             tk.Button(btn_frame, text="Cancel",
                      command=self.cancel,
                      bg=self.theme.get_color('bg_tertiary'),
-                     fg=self.theme.get_color('text')).pack(side=tk.RIGHT, padx=5)
+                     fg=self.theme.get_color('text'),
+                     font=('Segoe UI', 9),
+                     relief='flat').pack(side=tk.RIGHT, padx=5)
             
         except Exception as e:
             logger.error(f"Error creating icon editor widgets: {e}")
@@ -287,6 +341,12 @@ class IconEditorDialog:
                 photo = ImageTk.PhotoImage(img)
                 self.icon_display.config(image=photo, text="")
                 self.icon_display.image = photo
+            elif self.item_data.get('path') and os.path.exists(self.item_data['path']):
+                img = icon_extractor.get_file_icon(self.item_data['path'], 48)
+                if img:
+                    photo = ImageTk.PhotoImage(img)
+                    self.icon_display.config(image=photo, text="")
+                    self.icon_display.image = photo
         except Exception as e:
             logger.error(f"Error loading current icon: {e}")
     
@@ -304,9 +364,13 @@ class IconEditorDialog:
     
     def create_text_icon(self):
         try:
-            text = simpledialog.askstring("Text Icon", "Enter text for icon:")
+            text = simpledialog.askstring("Text Icon", "Enter text for icon (max 4 chars):")
             if text:
-                img = icon_extractor.create_custom_icon(text, "#bb86fc", "#1e1e2f", 48)
+                text = text[:4].upper()  # Limit to 4 characters
+                color = colorchooser.askcolor(title="Choose background color", color="#bb86fc")
+                bg_color = color[1] if color[1] else "#bb86fc"
+                
+                img = icon_extractor.create_text_icon(text, bg_color, 48)
                 if img:
                     photo = ImageTk.PhotoImage(img)
                     self.icon_display.config(image=photo, text="")
@@ -339,6 +403,7 @@ class IconEditorDialog:
     def remove_icon(self):
         self.item_data['custom_icon'] = None
         self.icon_display.config(image="", text="No Icon")
+        self.icon_display.image = None
     
     def save_icon(self):
         self.result = self.item_data
@@ -347,487 +412,126 @@ class IconEditorDialog:
     def cancel(self):
         self.dialog.destroy()
 
-class DesktopTray:
-    def __init__(self, parent, tray_data, toolbar_instance=None):
+class ExecutionLogger:
+    def __init__(self):
+        self.logs = []
+        self.max_logs = 100
+    
+    def add_log(self, item_name, command, status, output="", error=""):
+        log_entry = {
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'item_name': item_name,
+            'command': command,
+            'status': status,
+            'output': output,
+            'error': error
+        }
+        self.logs.insert(0, log_entry)  # Add to beginning
+        if len(self.logs) > self.max_logs:
+            self.logs = self.logs[:self.max_logs]
+    
+    def get_logs(self):
+        return self.logs
+    
+    def clear_logs(self):
+        self.logs = []
+
+class LogViewer:
+    def __init__(self, parent, logger_instance):
         self.parent = parent
-        self.tray_data = tray_data
-        self.toolbar_instance = toolbar_instance
+        self.logger = logger_instance
         self.theme = ModernVioletTheme()
-        self.items = []
-        self.selected_item = None
-        self.drag_data = {"x": 0, "y": 0, "item": None}
-        
-        self.window = tk.Toplevel(parent)
-        self.window.title(f"Desktop: {tray_data['name']}")
-        self.window.configure(bg=self.theme.get_color('bg'))
-        self.window.attributes('-topmost', True)
-        
-        geometry = tray_data.get('geometry', "1000x700+100+100")
-        self.window.geometry(geometry)
-        
-        self.canvas = tk.Canvas(
-            self.window,
-            bg=self.theme.get_color('bg_secondary'),
-            highlightthickness=0
-        )
-        self.canvas.pack(fill=tk.BOTH, expand=True)
-        
-        self.grid_size = 100
-        self.grid_items = {}
-        
-        self.canvas.bind("<Button-1>", self.on_canvas_click)
-        self.canvas.bind("<Button-3>", self.on_canvas_right_click)
-        self.canvas.bind("<Double-Button-1>", self.on_canvas_double_click)
-        self.canvas.bind("<Configure>", self.save_geometry)
-        
-        # Setup drag and drop
-        if DND_AVAILABLE:
-            try:
-                self.canvas.drop_target_register(tkdnd.DND_FILES)
-                self.canvas.dnd_bind('<<Drop>>', self.on_drop)
-                self.canvas.dnd_bind('<<DragEnter>>', self.on_drag_enter)
-                self.canvas.dnd_bind('<<DragLeave>>', self.on_drag_leave)
-                logger.info("Drag and drop enabled for tray")
-            except Exception as e:
-                logger.error(f"Error setting up drag and drop: {e}")
-        
-        self.load_items()
-        self.create_desktop_pattern()
-        
-        self.window.bind("<Configure>", self.save_geometry)
+        self.frame = None
+        self.text_widget = None
+        self.is_visible = False
     
-    def setup_drag_drop(self):
-        """Setup drag and drop functionality"""
-        try:
-            self.canvas.drop_target_register(tkdnd.DND_FILES)
-            self.canvas.dnd_bind('<<Drop>>', self.on_drop)
-            self.canvas.dnd_bind('<<DragEnter>>', self.on_drag_enter)
-            self.canvas.dnd_bind('<<DragLeave>>', self.on_drag_leave)
-        except Exception as e:
-            logger.error(f"Error setting up drag and drop: {e}")
-    
-    def on_drop(self, event):
-        """Handle dropped files"""
-        try:
-            logger.info(f"Drop event received: {event.data}")
-            files = self.tk.splitlist(event.data)
-            logger.info(f"Files dropped: {files}")
-            for file_path in files:
-                logger.info(f"Processing file: {file_path}")
-                self.add_item_from_path(file_path)
-        except Exception as e:
-            logger.error(f"Error handling drop: {e}")
-    
-    def on_drag_enter(self, event):
-        """Handle drag enter"""
-        self.canvas.config(bg=self.theme.get_color('bg_hover'))
-    
-    def on_drag_leave(self, event):
-        """Handle drag leave"""
-        self.canvas.config(bg=self.theme.get_color('bg_secondary'))
-    
-    def add_item_from_path(self, file_path):
-        """Add item from file path"""
-        try:
-            logger.info(f"Adding item from path: {file_path}")
-            if not os.path.exists(file_path):
-                logger.warning(f"File does not exist: {file_path}")
-                return
-            
-            item_name = os.path.basename(file_path)
-            is_executable = file_path.lower().endswith(('.exe', '.bat', '.py', '.ps1', '.js'))
-            is_folder = os.path.isdir(file_path)
-            
-            item = {
-                'id': str(uuid.uuid4()),
-                'name': item_name,
-                'path': file_path,
-                'type': 'executable' if is_executable else 'folder' if is_folder else 'file',
-                'custom_icon': None,
-                'description': f"Added from: {file_path}",
-                'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'modified': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'x': 50 + len(self.items) * 100,
-                'y': 50 + len(self.items) * 100
-            }
-            
-            self.add_item(item)
-            self.save_tray_data()
-            logger.info(f"Successfully added item: {item_name}")
-        except Exception as e:
-            logger.error(f"Error adding item from path: {e}")
-    
-    def create_desktop_pattern(self):
-        """Create desktop-like background pattern"""
-        try:
-            width = self.window.winfo_width()
-            height = self.window.winfo_height()
-            
-            for x in range(0, width, self.grid_size):
-                self.canvas.create_line(x, 0, x, height, fill=self.theme.get_color('bg_tertiary'), width=1)
-            for y in range(0, height, self.grid_size):
-                self.canvas.create_line(0, y, width, y, fill=self.theme.get_color('bg_tertiary'), width=1)
-        except Exception as e:
-            logger.error(f"Error creating desktop pattern: {e}")
-    
-    def load_items(self):
-        """Load items from tray data"""
-        try:
-            items = self.tray_data.get('items', [])
-            for item_data in items:
-                self.add_item(item_data)
-        except Exception as e:
-            logger.error(f"Error loading items: {e}")
-    
-    def add_item(self, item_data):
-        """Add item to desktop tray"""
-        try:
-            icon_image = self.get_item_icon(item_data)
-            
-            x = item_data.get('x', 50)
-            y = item_data.get('y', 50)
-            
-            icon_frame = tk.Frame(self.canvas, bg=self.theme.get_color('bg_tertiary'), relief='raised', bd=2)
-            icon_frame.place(x=x, y=y, width=80, height=80)
-            
-            icon_label = tk.Label(
-                icon_frame,
-                image=icon_image,
+    def create_viewer(self):
+        if self.frame:
+            return self.frame
+        
+        self.frame = tk.Frame(self.parent, bg=self.theme.get_color('bg_secondary'), width=300)
+        
+        # Header
+        header_frame = tk.Frame(self.frame, bg=self.theme.get_color('bg_tertiary'))
+        header_frame.pack(fill=tk.X, padx=5, pady=2)
+        
+        tk.Label(header_frame, text="Execution Logs", 
                 bg=self.theme.get_color('bg_tertiary'),
-                width=40,
-                height=40
-            )
-            icon_label.pack(pady=5)
+                fg=self.theme.get_color('text_accent'),
+                font=('Segoe UI', 10, 'bold')).pack(side=tk.LEFT, padx=5)
+        
+        clear_btn = tk.Button(header_frame, text="Clear",
+                             command=self.clear_logs,
+                             bg=self.theme.get_color('bg_hover'),
+                             fg=self.theme.get_color('text'),
+                             font=('Segoe UI', 8),
+                             relief='flat')
+        clear_btn.pack(side=tk.RIGHT, padx=5)
+        
+        # Log display
+        text_frame = tk.Frame(self.frame, bg=self.theme.get_color('bg_secondary'))
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
+        
+        self.text_widget = tk.Text(text_frame, 
+                                  bg=self.theme.get_color('input_bg'),
+                                  fg=self.theme.get_color('text'),
+                                  font=('Consolas', 8),
+                                  wrap=tk.WORD,
+                                  state=tk.DISABLED)
+        
+        scrollbar = tk.Scrollbar(text_frame, orient=tk.VERTICAL, command=self.text_widget.yview)
+        self.text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        self.text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.refresh_logs()
+        return self.frame
+    
+    def refresh_logs(self):
+        if not self.text_widget:
+            return
+        
+        self.text_widget.config(state=tk.NORMAL)
+        self.text_widget.delete('1.0', tk.END)
+        
+        logs = self.logger.get_logs()
+        for log in logs[:50]:  # Show last 50 logs
+            status_color = 'green' if log['status'] == 'success' else 'red'
+            log_text = f"[{log['timestamp']}] {log['item_name']}\n"
+            log_text += f"Command: {log['command']}\n"
+            log_text += f"Status: {log['status']}\n"
+            if log['output']:
+                log_text += f"Output: {log['output'][:100]}...\n" if len(log['output']) > 100 else f"Output: {log['output']}\n"
+            if log['error']:
+                log_text += f"Error: {log['error'][:100]}...\n" if len(log['error']) > 100 else f"Error: {log['error']}\n"
+            log_text += "-" * 50 + "\n\n"
             
-            name_label = tk.Label(
-                icon_frame,
-                text=item_data.get('name', 'Item'),
-                bg=self.theme.get_color('bg_tertiary'),
-                fg=self.theme.get_color('text'),
-                font=('Segoe UI', 8),
-                wraplength=70
-            )
-            name_label.pack()
-            
-            item = {
-                'data': item_data,
-                'frame': icon_frame,
-                'icon': icon_label,
-                'name': name_label,
-                'x': x,
-                'y': y
-            }
-            
-            self.items.append(item)
-            
-            icon_frame.bind("<Button-1>", lambda e, i=item: self.on_item_click(e, i))
-            icon_frame.bind("<Button-3>", lambda e, i=item: self.on_item_right_click(e, i))
-            icon_frame.bind("<Double-Button-1>", lambda e, i=item: self.on_item_double_click(e, i))
-            icon_frame.bind("<B1-Motion>", lambda e, i=item: self.on_item_drag(e, i))
-            icon_frame.bind("<ButtonRelease-1>", lambda e, i=item: self.on_item_release(e, i))
-            
-            if icon_image:
-                icon_label.image = icon_image
-                
-        except Exception as e:
-            logger.error(f"Error adding item: {e}")
+            self.text_widget.insert(tk.END, log_text)
+        
+        self.text_widget.config(state=tk.DISABLED)
+        self.text_widget.see(tk.END)
     
-    def get_item_icon(self, item_data):
-        """Get icon for item"""
-        try:
-            if item_data.get('custom_icon') and os.path.exists(item_data['custom_icon']):
-                if PIL_AVAILABLE:
-                    img = Image.open(item_data['custom_icon'])
-                    img = icon_extractor.make_square_thumbnail(img, 32)
-                    return ImageTk.PhotoImage(img)
-            
-            if item_data.get('path') and os.path.exists(item_data['path']):
-                win_icon = icon_extractor.get_file_icon(item_data['path'], 32)
-                if win_icon and PIL_AVAILABLE:
-                    return ImageTk.PhotoImage(win_icon)
-            
-            if PIL_AVAILABLE:
-                item_type = item_data.get('type', 'file')
-                if item_type == 'folder':
-                    img = icon_extractor.create_custom_icon("📁", "#ffd700", "#1e1e2f", 32)
-                elif item_type == 'executable':
-                    img = icon_extractor.create_custom_icon("⚙", "#4fc3f7", "#1e1e2f", 32)
-                elif item_type == 'url':
-                    img = icon_extractor.create_custom_icon("🌐", "#4fc3f7", "#1e1e2f", 32)
-                else:
-                    img = icon_extractor.create_custom_icon("📄", "#bb86fc", "#1e1e2f", 32)
-                return ImageTk.PhotoImage(img)
-            
-            return None
-        except Exception as e:
-            logger.error(f"Error getting item icon: {e}")
-            return None
+    def clear_logs(self):
+        self.logger.clear_logs()
+        self.refresh_logs()
     
-    def on_item_click(self, event, item):
-        """Handle item click"""
-        self.selected_item = item
-        self.drag_data["x"] = event.x
-        self.drag_data["y"] = event.y
-        self.drag_data["item"] = item
-    
-    def on_item_drag(self, event, item):
-        """Handle item drag"""
-        try:
-            dx = event.x - self.drag_data["x"]
-            dy = event.y - self.drag_data["y"]
-            
-            new_x = item['x'] + dx
-            new_y = item['y'] + dy
-            
-            item['frame'].place(x=new_x, y=new_y)
-            item['x'] = new_x
-            item['y'] = new_y
-            
-            self.drag_data["x"] = event.x
-            self.drag_data["y"] = event.y
-        except Exception as e:
-            logger.error(f"Error dragging item: {e}")
-    
-    def on_item_release(self, event, item):
-        """Handle item release"""
-        try:
-            item['data']['x'] = item['x']
-            item['data']['y'] = item['y']
-            self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error releasing item: {e}")
-    
-    def on_item_right_click(self, event, item):
-        """Handle item right-click"""
-        self.show_item_context_menu(event, item)
-    
-    def on_item_double_click(self, event, item):
-        """Handle item double-click"""
-        self.execute_item(item)
-    
-    def on_canvas_click(self, event):
-        """Handle canvas click"""
-        self.selected_item = None
-    
-    def on_canvas_right_click(self, event):
-        """Handle canvas right-click"""
-        menu = tk.Menu(self.window, tearoff=0)
-        menu.add_command(label="Add File", command=self.add_file)
-        menu.add_command(label="Add Folder", command=self.add_folder)
-        menu.add_command(label="Add URL", command=self.add_url)
-        menu.add_separator()
-        menu.add_command(label="Edit Tray Icon", command=self.edit_tray_icon)
-        menu.post(event.x_root, event.y_root)
-    
-    def on_canvas_double_click(self, event):
-        """Handle canvas double-click"""
-        pass
-    
-    def show_item_context_menu(self, event, item):
-        """Show context menu for item"""
-        try:
-            menu = tk.Menu(self.window, tearoff=0)
-            
-            if item['data'].get('path'):
-                menu.add_command(label="Open", command=lambda: self.execute_item(item))
-                
-                if item['data'].get('type') != 'folder' and item['data'].get('type') != 'url':
-                    menu.add_command(label="Edit in VS Code", command=lambda: self.edit_in_vscode(item))
-                
-                menu.add_separator()
-            
-            menu.add_command(label="Edit Icon", command=lambda: self.edit_item_icon(item))
-            menu.add_command(label="Properties", command=lambda: self.show_item_properties(item))
-            menu.add_command(label="Remove", command=lambda: self.delete_item(item))
-            menu.post(event.x_root, event.y_root)
-        except Exception as e:
-            logger.error(f"Error showing item context menu: {e}")
-    
-    def execute_item(self, item):
-        """Execute item"""
-        try:
-            file_path = item['data'].get('path', '')
-            item_type = item['data'].get('type', 'file')
-            
-            if item_type == 'url':
-                webbrowser.open(file_path)
-            elif file_path and os.path.exists(file_path):
-                if item_type == 'executable':
-                    if file_path.endswith('.py'):
-                        subprocess.Popen(['python', file_path])
-                    elif file_path.endswith('.bat'):
-                        subprocess.Popen([file_path], shell=True)
-                    elif file_path.endswith('.ps1'):
-                        subprocess.Popen(['powershell', '-ExecutionPolicy', 'Bypass', file_path])
-                    elif file_path.endswith('.js'):
-                        subprocess.Popen(['node', file_path])
-                    elif file_path.endswith('.exe'):
-                        subprocess.Popen([file_path])
-                elif item_type == 'folder':
-                    if os.name == 'nt':
-                        subprocess.Popen(['explorer', file_path])
-                    else:
-                        subprocess.Popen(['xdg-open', file_path])
-                else:
-                    if os.name == 'nt':
-                        subprocess.Popen(['start', file_path], shell=True)
-                    else:
-                        subprocess.Popen(['xdg-open', file_path])
-        except Exception as e:
-            logger.error(f"Error executing item: {e}")
-    
-    def edit_in_vscode(self, item):
-        """Edit item in VS Code"""
-        try:
-            file_path = item['data'].get('path', '')
-            if file_path:
-                subprocess.Popen(['code', file_path])
-        except FileNotFoundError:
-            messagebox.showerror("Error", "VS Code not found. Please make sure VS Code is installed and 'code' command is available in PATH.")
-        except Exception as e:
-            logger.error(f"Error opening in VS Code: {e}")
-    
-    def show_item_properties(self, item):
-        """Show item properties"""
-        try:
-            name = simpledialog.askstring("Item Properties", "Name:", initialvalue=item['data'].get('name', ''))
-            if name:
-                item['data']['name'] = name
-                item['name'].config(text=name)
-                self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error showing item properties: {e}")
-    
-    def delete_item(self, item):
-        """Delete item"""
-        try:
-            item['frame'].destroy()
-            self.items.remove(item)
-            self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error deleting item: {e}")
-    
-    def add_file(self):
-        """Add file to tray"""
-        try:
-            file_path = filedialog.askopenfilename()
-            if file_path:
-                item_data = {
-                    'id': str(uuid.uuid4()),
-                    'name': os.path.basename(file_path),
-                    'path': file_path,
-                    'type': 'file',
-                    'x': 50 + len(self.items) * 100,
-                    'y': 50 + len(self.items) * 100,
-                    'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                self.add_item(item_data)
-                self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error adding file: {e}")
-    
-    def add_folder(self):
-        """Add folder to tray"""
-        try:
-            folder_path = filedialog.askdirectory()
-            if folder_path:
-                item_data = {
-                    'id': str(uuid.uuid4()),
-                    'name': os.path.basename(folder_path),
-                    'path': folder_path,
-                    'type': 'folder',
-                    'x': 50 + len(self.items) * 100,
-                    'y': 50 + len(self.items) * 100,
-                    'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                self.add_item(item_data)
-                self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error adding folder: {e}")
-    
-    def add_url(self):
-        """Add URL to tray"""
-        try:
-            url = simpledialog.askstring("Add URL", "Enter URL:")
-            if url:
-                item_data = {
-                    'id': str(uuid.uuid4()),
-                    'name': url,
-                    'path': url,
-                    'type': 'url',
-                    'x': 50 + len(self.items) * 100,
-                    'y': 50 + len(self.items) * 100,
-                    'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                self.add_item(item_data)
-                self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error adding URL: {e}")
-    
-    def edit_item_icon(self, item):
-        """Edit item icon"""
-        try:
-            dialog = IconEditorDialog(self.window, item['data'])
-            self.window.wait_window(dialog.dialog)
-            if dialog.result:
-                item['data'] = dialog.result
-                item['frame'].destroy()
-                self.add_item(item['data'])
-                self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error editing item icon: {e}")
-    
-    def edit_tray_icon(self):
-        """Edit tray icon"""
-        try:
-            temp_item_data = {
-                'id': self.tray_data['id'],
-                'custom_icon': self.tray_data.get('custom_icon')
-            }
-            
-            dialog = IconEditorDialog(self.window, temp_item_data)
-            self.window.wait_window(dialog.dialog)
-            if dialog.result:
-                self.tray_data['custom_icon'] = dialog.result.get('custom_icon')
-                self.save_tray_data()
-                if self.toolbar_instance:
-                    self.toolbar_instance.refresh_toolbar()
-        except Exception as e:
-            logger.error(f"Error editing tray icon: {e}")
-    
-    def save_tray_data(self):
-        """Save tray data"""
-        try:
-            if self.toolbar_instance:
-                items_data = []
-                for item in self.items:
-                    item_data = item['data'].copy()
-                    item_data['x'] = item['x']
-                    item_data['y'] = item['y']
-                    items_data.append(item_data)
-                
-                for tray in self.toolbar_instance.trays:
-                    if tray['id'] == self.tray_data['id']:
-                        tray['items'] = items_data
-                        tray['geometry'] = self.window.geometry()
-                        break
-                
-                self.toolbar_instance.save_config()
-        except Exception as e:
-            logger.error(f"Error saving tray data: {e}")
-    
-    def save_geometry(self, event):
-        """Save window geometry"""
-        try:
-            if event.widget == self.window:
-                self.tray_data['geometry'] = self.window.geometry()
-                self.save_tray_data()
-        except Exception as e:
-            logger.error(f"Error saving geometry: {e}")
+    def toggle_visibility(self):
+        if not self.frame:
+            return
+        
+        if self.is_visible:
+            self.frame.pack_forget()
+        else:
+            self.frame.pack(side=tk.LEFT, fill=tk.Y)
+            self.refresh_logs()
+        
+        self.is_visible = not self.is_visible
 
 class TaskbarButton:
-    def __init__(self, parent, text, icon_image=None, command=None, item_data=None):
+    def __init__(self, parent, taskbar_ref, text, icon_image=None, command=None, item_data=None):
         self.parent = parent
+        self.taskbar_ref = taskbar_ref  # Reference to main taskbar
         self.text = text
         self.icon_image = icon_image
         self.command = command
@@ -839,7 +543,7 @@ class TaskbarButton:
         
         self.button = tk.Button(
             self.frame,
-            text=text if not icon_image else " ",
+            text=text if not icon_image else "",
             image=icon_image,
             compound=tk.LEFT if icon_image else tk.NONE,
             bg=self.theme.get_color('bg_tertiary'),
@@ -853,10 +557,12 @@ class TaskbarButton:
             command=self.on_click
         )
         
-        self.button.pack(fill=tk.BOTH, expand=True)
+        self.button.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
         # Bind events
         self.button.bind("<Button-3>", self.on_right_click)
+        self.button.bind("<Enter>", self.on_enter)
+        self.button.bind("<Leave>", self.on_leave)
         
         if icon_image:
             self.button.image = icon_image
@@ -868,8 +574,16 @@ class TaskbarButton:
     
     def on_right_click(self, event):
         """Handle right-click"""
-        if self.item_data:
-            self.parent.show_context_menu(event, self.item_data)
+        if self.item_data and self.taskbar_ref:
+            self.taskbar_ref.show_context_menu(event, self.item_data)
+    
+    def on_enter(self, event):
+        """Handle mouse enter"""
+        self.button.config(bg=self.theme.get_color('bg_hover'))
+    
+    def on_leave(self, event):
+        """Handle mouse leave"""
+        self.button.config(bg=self.theme.get_color('bg_tertiary'))
 
 class ModernTaskbar:
     def __init__(self, root):
@@ -878,10 +592,10 @@ class ModernTaskbar:
         self.theme = ModernVioletTheme()
         
         self.config_file = "taskbar_config.json"
-        self.scripts = []
-        self.trays = []
-        self.tray_windows = {}
+        self.items = []
         self.transparency = 95
+        self.execution_logger = ExecutionLogger()
+        self.log_viewer = None
         
         self.load_config()
         self.setup_window()
@@ -927,8 +641,26 @@ class ModernTaskbar:
             self.main_frame = tk.Frame(self.root, bg=self.theme.get_color('bg'))
             self.main_frame.pack(fill=tk.BOTH, expand=True)
             
+            # Create log viewer
+            self.log_viewer = LogViewer(self.main_frame, self.execution_logger)
+            log_frame = self.log_viewer.create_viewer()
+            
+            # Log toggle button
+            self.log_toggle_btn = tk.Button(
+                self.main_frame,
+                text="📋",
+                command=self.toggle_log_viewer,
+                bg=self.theme.get_color('bg_tertiary'),
+                fg=self.theme.get_color('text'),
+                font=('Segoe UI', 12),
+                relief='flat',
+                width=3
+            )
+            self.log_toggle_btn.pack(side=tk.LEFT, padx=2, pady=2)
+            
+            # Center container for items
             self.center_container = tk.Frame(self.main_frame, bg=self.theme.get_color('bg'))
-            self.center_container.pack(expand=True)
+            self.center_container.pack(expand=True, fill=tk.BOTH)
             
             self.canvas = tk.Canvas(self.center_container, bg=self.theme.get_color('bg'), highlightthickness=0)
             self.scrollbar = tk.Scrollbar(self.center_container, orient="horizontal", command=self.canvas.xview)
@@ -945,127 +677,238 @@ class ModernTaskbar:
             self.canvas.pack(side="top", fill="both", expand=True)
             self.scrollbar.pack(side="bottom", fill="x")
             
-            for script in self.scripts:
-                self.add_script_button(script)
+            # Setup drag and drop if available
+            self.setup_drag_drop()
             
-            for tray in self.trays:
-                self.add_tray_button(tray)
+            # Load existing items
+            for item in self.items:
+                self.add_item_button(item)
                 
         except Exception as e:
             logger.error(f"Error creating taskbar: {e}")
     
-    def add_script_button(self, script_data):
-        """Add script button to taskbar"""
+    def setup_drag_drop(self):
+        """Setup drag and drop functionality"""
+        if not DND_AVAILABLE:
+            logger.info("Drag and drop not available - tkinterdnd2 not installed")
+            return
+            
         try:
-            icon_image = None
-            if script_data.get('custom_icon') and os.path.exists(script_data['custom_icon']):
-                if PIL_AVAILABLE:
-                    img = Image.open(script_data['custom_icon'])
-                    img = icon_extractor.make_square_thumbnail(img, 24)
-                    icon_image = ImageTk.PhotoImage(img)
-            elif script_data.get('path') and os.path.exists(script_data['path']):
-                win_icon = icon_extractor.get_file_icon(script_data['path'], 24)
-                if win_icon and PIL_AVAILABLE:
-                    icon_image = ImageTk.PhotoImage(win_icon)
-            
-            button = TaskbarButton(
-                self.scrollable_frame,
-                script_data['name'],
-                icon_image=icon_image,
-                command=lambda: self.execute_script(script_data),
-                item_data=script_data
-            )
-            
-            if icon_image:
-                button.button.image = icon_image
-                
+            # Make canvas a drop target
+            self.canvas.drop_target_register(tkdnd.DND_FILES)
+            self.canvas.dnd_bind('<<Drop>>', self.on_drop)
+            self.canvas.dnd_bind('<<DragEnter>>', self.on_drag_enter)
+            self.canvas.dnd_bind('<<DragLeave>>', self.on_drag_leave)
+            logger.info("Drag and drop enabled successfully")
         except Exception as e:
-            logger.error(f"Error adding script button: {e}")
+            logger.error(f"Error setting up drag and drop: {e}")
+            logger.info("Drag and drop will not be available")
     
-    def add_tray_button(self, tray_data):
-        """Add tray button to taskbar"""
+    def on_drop(self, event):
+        """Handle dropped files"""
         try:
-            icon_image = None
-            if tray_data.get('custom_icon') and os.path.exists(tray_data['custom_icon']):
-                if PIL_AVAILABLE:
-                    img = Image.open(tray_data['custom_icon'])
-                    img = icon_extractor.make_square_thumbnail(img, 24)
-                    icon_image = ImageTk.PhotoImage(img)
-            else:
-                if PIL_AVAILABLE:
-                    img = icon_extractor.create_custom_icon("📁", "#ffd700", "#1e1e2f", 24)
-                    icon_image = ImageTk.PhotoImage(img)
-            
-            button = TaskbarButton(
-                self.scrollable_frame,
-                tray_data['name'],
-                icon_image=icon_image,
-                command=lambda: self.toggle_tray(tray_data),
-                item_data=tray_data
-            )
-            
-            if icon_image:
-                button.button.image = icon_image
-                
+            files = self.root.tk.splitlist(event.data)
+            for file_path in files:
+                self.add_item_from_path(file_path)
         except Exception as e:
-            logger.error(f"Error adding tray button: {e}")
+            logger.error(f"Error handling drop: {e}")
     
-    def execute_script(self, script_data):
-        """Execute script"""
+    def on_drag_enter(self, event):
+        """Handle drag enter"""
         try:
-            file_path = script_data.get('path', '')
-            if not file_path or not os.path.exists(file_path):
-                messagebox.showerror("Error", f"Script file not found: {file_path}")
+            self.canvas.config(bg=self.theme.get_color('bg_hover'))
+        except Exception as e:
+            pass
+    
+    def on_drag_leave(self, event):
+        """Handle drag leave"""
+        try:
+            self.canvas.config(bg=self.theme.get_color('bg'))
+        except Exception as e:
+            pass
+    
+    def add_item_from_path(self, file_path):
+        """Add item from file path"""
+        try:
+            if not os.path.exists(file_path):
+                logger.warning(f"File does not exist: {file_path}")
                 return
             
-            if file_path.endswith('.py'):
-                subprocess.Popen(['python', file_path])
-            elif file_path.endswith('.bat'):
-                subprocess.Popen([file_path], shell=True)
-            elif file_path.endswith('.ps1'):
-                subprocess.Popen(['powershell', '-ExecutionPolicy', 'Bypass', file_path])
-            elif file_path.endswith('.js'):
-                subprocess.Popen(['node', file_path])
-            elif file_path.endswith('.exe'):
-                subprocess.Popen([file_path])
-            else:
-                subprocess.Popen([file_path], shell=True)
-                
+            item_name = os.path.basename(file_path)
+            is_executable = file_path.lower().endswith(('.exe', '.bat', '.py', '.ps1', '.js', '.cmd'))
+            is_folder = os.path.isdir(file_path)
+            
+            item_type = 'folder' if is_folder else 'executable' if is_executable else 'file'
+            
+            item = {
+                'id': str(uuid.uuid4()),
+                'name': item_name,
+                'path': file_path,
+                'type': item_type,
+                'custom_icon': None,
+                'description': f"Added from: {file_path}",
+                'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'modified': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            self.items.append(item)
+            self.add_item_button(item)
+            self.save_config()
+            logger.info(f"Successfully added item: {item_name}")
         except Exception as e:
-            logger.error(f"Error executing script: {e}")
-            messagebox.showerror("Error", f"Failed to execute script: {e}")
+            logger.error(f"Error adding item from path: {e}")
     
-    def toggle_tray(self, tray_data):
-        """Toggle tray window"""
+    def add_item_button(self, item_data):
+        """Add item button to taskbar"""
         try:
-            tray_id = tray_data['id']
-            if tray_id in self.tray_windows:
-                self.tray_windows[tray_id].window.destroy()
-                del self.tray_windows[tray_id]
-            else:
-                tray_window = DesktopTray(self.root, tray_data, self)
-                self.tray_windows[tray_id] = tray_window
+            icon_image = self.get_item_icon(item_data)
+            
+            button = TaskbarButton(
+                self.scrollable_frame,
+                self,  # Pass reference to taskbar
+                item_data['name'],
+                icon_image=icon_image,
+                command=lambda: self.execute_item(item_data),
+                item_data=item_data
+            )
+            
+            if icon_image:
+                button.button.image = icon_image
                 
         except Exception as e:
-            logger.error(f"Error toggling tray: {e}")
+            logger.error(f"Error adding item button: {e}")
+    
+    def get_item_icon(self, item_data):
+        """Get icon for item"""
+        try:
+            # Try custom icon first
+            if item_data.get('custom_icon') and os.path.exists(item_data['custom_icon']):
+                if PIL_AVAILABLE:
+                    img = Image.open(item_data['custom_icon'])
+                    img = icon_extractor.make_square_thumbnail(img, 24)
+                    return ImageTk.PhotoImage(img)
+            
+            # Try file icon
+            if item_data.get('path') and os.path.exists(item_data['path']):
+                win_icon = icon_extractor.get_file_icon(item_data['path'], 24)
+                if win_icon and PIL_AVAILABLE:
+                    return ImageTk.PhotoImage(win_icon)
+            
+            return None
+        except Exception as e:
+            logger.error(f"Error getting item icon: {e}")
+            return None
+    
+    def execute_item(self, item_data):
+        """Execute item"""
+        def run_execution():
+            try:
+                file_path = item_data.get('path', '')
+                item_type = item_data.get('type', 'file')
+                item_name = item_data.get('name', 'Unknown')
+                
+                if not file_path or not os.path.exists(file_path):
+                    self.execution_logger.add_log(item_name, file_path, 'error', error='File not found')
+                    return
+                
+                if item_type == 'folder':
+                    # Open folder
+                    if os.name == 'nt':
+                        command = f'explorer "{file_path}"'
+                        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+                    else:
+                        command = f'xdg-open "{file_path}"'
+                        result = subprocess.run([command], shell=True, capture_output=True, text=True)
+                    
+                    self.execution_logger.add_log(item_name, command, 'success', 'Opened folder')
+                
+                elif item_type == 'executable':
+                    # Execute file
+                    if file_path.endswith('.py'):
+                        command = f'python "{file_path}"'
+                        result = subprocess.run(['python', file_path], capture_output=True, text=True, timeout=30)
+                    elif file_path.endswith(('.bat', '.cmd')):
+                        command = f'"{file_path}"'
+                        result = subprocess.run([file_path], shell=True, capture_output=True, text=True, timeout=30)
+                    elif file_path.endswith('.ps1'):
+                        command = f'powershell -ExecutionPolicy Bypass "{file_path}"'
+                        result = subprocess.run(['powershell', '-ExecutionPolicy', 'Bypass', file_path], capture_output=True, text=True, timeout=30)
+                    elif file_path.endswith('.js'):
+                        command = f'node "{file_path}"'
+                        result = subprocess.run(['node', file_path], capture_output=True, text=True, timeout=30)
+                    elif file_path.endswith('.exe'):
+                        command = f'"{file_path}"'
+                        result = subprocess.Popen([file_path])
+                        self.execution_logger.add_log(item_name, command, 'success', 'Executable started')
+                        return
+                    else:
+                        command = f'"{file_path}"'
+                        result = subprocess.run([file_path], shell=True, capture_output=True, text=True, timeout=30)
+                    
+                    status = 'success' if result.returncode == 0 else 'error'
+                    self.execution_logger.add_log(item_name, command, status, result.stdout, result.stderr)
+                
+                else:
+                    # Open file with default application
+                    if os.name == 'nt':
+                        command = f'start "" "{file_path}"'
+                        subprocess.run(['start', '', file_path], shell=True)
+                    else:
+                        command = f'xdg-open "{file_path}"'
+                        subprocess.run(['xdg-open', file_path])
+                    
+                    self.execution_logger.add_log(item_name, command, 'success', 'Opened with default application')
+                
+                # Refresh log viewer if visible
+                if self.log_viewer and self.log_viewer.is_visible:
+                    self.root.after(100, self.log_viewer.refresh_logs)
+                    
+            except subprocess.TimeoutExpired:
+                self.execution_logger.add_log(item_name, command, 'error', error='Execution timeout')
+            except Exception as e:
+                self.execution_logger.add_log(item_name, file_path, 'error', error=str(e))
+                logger.error(f"Error executing item: {e}")
+        
+        # Run execution in thread to avoid blocking UI
+        thread = threading.Thread(target=run_execution, daemon=True)
+        thread.start()
     
     def show_context_menu(self, event, item_data):
         """Show context menu for item"""
         try:
-            menu = tk.Menu(self.root, tearoff=0)
+            menu = tk.Menu(self.root, tearoff=0, 
+                          bg=self.theme.get_color('bg_tertiary'),
+                          fg=self.theme.get_color('text'))
             
-            if item_data.get('type') == 'script':
-                menu.add_command(label="Execute", command=lambda: self.execute_script(item_data))
+            # Execute/Open option
+            if item_data['type'] == 'folder':
+                menu.add_command(label="Open Folder", command=lambda: self.execute_item(item_data))
+            elif item_data['type'] == 'executable':
+                menu.add_command(label="Execute", command=lambda: self.execute_item(item_data))
+            else:
+                menu.add_command(label="Open", command=lambda: self.execute_item(item_data))
+            
+            menu.add_separator()
+            
+            # Edit in editor (for code files)
+            if item_data.get('path', '').lower().endswith(('.py', '.js', '.bat', '.ps1', '.txt', '.json', '.xml', '.html', '.css')):
                 menu.add_command(label="Edit in VS Code", command=lambda: self.edit_in_vscode(item_data['path']))
-                menu.add_command(label="Edit Icon", command=lambda: self.edit_script_icon(item_data))
-                menu.add_separator()
-                menu.add_command(label="Remove", command=lambda: self.remove_script(item_data))
-            else:  # tray
-                menu.add_command(label="Open", command=lambda: self.toggle_tray(item_data))
-                menu.add_command(label="Edit Icon", command=lambda: self.edit_tray_icon(item_data))
-                menu.add_separator()
-                menu.add_command(label="Rename", command=lambda: self.rename_tray(item_data))
-                menu.add_command(label="Remove", command=lambda: self.remove_tray(item_data))
+                menu.add_command(label="Edit in Notepad", command=lambda: self.edit_in_notepad(item_data['path']))
+            
+            # File operations
+            menu.add_command(label="Open Folder Location", command=lambda: self.open_folder_location(item_data['path']))
+            menu.add_command(label="Copy Path", command=lambda: self.copy_path_to_clipboard(item_data['path']))
+            
+            menu.add_separator()
+            
+            # Icon and properties
+            menu.add_command(label="Change Icon", command=lambda: self.edit_item_icon(item_data))
+            menu.add_command(label="Properties", command=lambda: self.show_item_properties(item_data))
+            
+            menu.add_separator()
+            
+            # Remove
+            menu.add_command(label="Remove", command=lambda: self.remove_item(item_data))
             
             menu.post(event.x_root, event.y_root)
             
@@ -1075,106 +918,159 @@ class ModernTaskbar:
     def edit_in_vscode(self, file_path):
         """Edit file in VS Code"""
         try:
-            if file_path:
-                subprocess.Popen(['code', file_path])
+            subprocess.Popen(['code', file_path])
+            self.execution_logger.add_log(os.path.basename(file_path), f'code "{file_path}"', 'success', 'Opened in VS Code')
         except FileNotFoundError:
             messagebox.showerror("Error", "VS Code not found. Please make sure VS Code is installed and 'code' command is available in PATH.")
         except Exception as e:
             logger.error(f"Error opening in VS Code: {e}")
-            messagebox.showerror("Error", f"Failed to open in VS Code: {e}")
     
-    def edit_script_icon(self, script_data):
-        """Edit script icon"""
+    def edit_in_notepad(self, file_path):
+        """Edit file in Notepad"""
         try:
-            dialog = IconEditorDialog(self.root, script_data)
+            subprocess.Popen(['notepad.exe', file_path])
+            self.execution_logger.add_log(os.path.basename(file_path), f'notepad "{file_path}"', 'success', 'Opened in Notepad')
+        except Exception as e:
+            logger.error(f"Error opening in Notepad: {e}")
+    
+    def open_folder_location(self, file_path):
+        """Open folder location"""
+        try:
+            folder_path = os.path.dirname(file_path)
+            if os.name == 'nt':
+                subprocess.run(['explorer', '/select,', file_path])
+            else:
+                subprocess.run(['xdg-open', folder_path])
+            self.execution_logger.add_log('System', f'Open location "{file_path}"', 'success', 'Opened folder location')
+        except Exception as e:
+            logger.error(f"Error opening folder location: {e}")
+    
+    def copy_path_to_clipboard(self, file_path):
+        """Copy path to clipboard"""
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(file_path)
+            self.execution_logger.add_log('System', f'Copy path "{file_path}"', 'success', 'Path copied to clipboard')
+        except Exception as e:
+            logger.error(f"Error copying path to clipboard: {e}")
+    
+    def edit_item_icon(self, item_data):
+        """Edit item icon"""
+        try:
+            dialog = IconEditorDialog(self.root, item_data)
             self.root.wait_window(dialog.dialog)
             if dialog.result:
-                for i, script in enumerate(self.scripts):
-                    if script['id'] == script_data['id']:
-                        self.scripts[i] = dialog.result
+                # Update the item data
+                for i, item in enumerate(self.items):
+                    if item['id'] == item_data['id']:
+                        self.items[i] = dialog.result
                         break
                 self.save_config()
                 self.refresh_toolbar()
         except Exception as e:
-            logger.error(f"Error editing script icon: {e}")
+            logger.error(f"Error editing item icon: {e}")
     
-    def edit_tray_icon(self, tray_data):
-        """Edit tray icon"""
+    def show_item_properties(self, item_data):
+        """Show item properties"""
         try:
-            dialog = IconEditorDialog(self.root, tray_data)
-            self.root.wait_window(dialog.dialog)
-            if dialog.result:
-                for i, tray in enumerate(self.trays):
-                    if tray['id'] == tray_data['id']:
-                        self.trays[i] = dialog.result
-                        break
-                self.save_config()
-                self.refresh_toolbar()
-        except Exception as e:
-            logger.error(f"Error editing tray icon: {e}")
-    
-    def remove_script(self, script_data):
-        """Remove script"""
-        try:
-            self.scripts = [s for s in self.scripts if s['id'] != script_data['id']]
-            self.save_config()
-            self.refresh_toolbar()
-        except Exception as e:
-            logger.error(f"Error removing script: {e}")
-    
-    def remove_tray(self, tray_data):
-        """Remove tray"""
-        try:
-            tray_id = tray_data['id']
-            if tray_id in self.tray_windows:
-                self.tray_windows[tray_id].window.destroy()
-                del self.tray_windows[tray_id]
+            props_window = tk.Toplevel(self.root)
+            props_window.title("Item Properties")
+            props_window.geometry("400x300")
+            props_window.configure(bg=self.theme.get_color('bg'))
+            props_window.attributes('-topmost', True)
             
-            self.trays = [t for t in self.trays if t['id'] != tray_data['id']]
-            self.save_config()
-            self.refresh_toolbar()
+            frame = tk.Frame(props_window, bg=self.theme.get_color('bg'))
+            frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+            
+            # Name field
+            name_frame = tk.Frame(frame, bg=self.theme.get_color('bg'))
+            name_frame.pack(fill=tk.X, pady=5)
+            tk.Label(name_frame, text="Name:", bg=self.theme.get_color('bg'), fg=self.theme.get_color('text')).pack(side=tk.LEFT)
+            name_var = tk.StringVar(value=item_data.get('name', ''))
+            name_entry = tk.Entry(name_frame, textvariable=name_var, bg=self.theme.get_color('input_bg'), fg=self.theme.get_color('text'))
+            name_entry.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=10)
+            
+            # Path info
+            tk.Label(frame, text=f"Path: {item_data.get('path', 'N/A')}", 
+                    bg=self.theme.get_color('bg'), fg=self.theme.get_color('text_secondary'),
+                    wraplength=350, justify=tk.LEFT).pack(fill=tk.X, pady=5)
+            
+            tk.Label(frame, text=f"Type: {item_data.get('type', 'Unknown')}", 
+                    bg=self.theme.get_color('bg'), fg=self.theme.get_color('text_secondary')).pack(fill=tk.X, pady=5)
+            
+            tk.Label(frame, text=f"Created: {item_data.get('created', 'Unknown')}", 
+                    bg=self.theme.get_color('bg'), fg=self.theme.get_color('text_secondary')).pack(fill=tk.X, pady=5)
+            
+            def save_properties():
+                new_name = name_var.get().strip()
+                if new_name:
+                    item_data['name'] = new_name
+                    item_data['modified'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.save_config()
+                    self.refresh_toolbar()
+                props_window.destroy()
+            
+            tk.Button(frame, text="Save", command=save_properties,
+                     bg=self.theme.get_color('bg_tertiary'), fg=self.theme.get_color('text')).pack(pady=20)
+            
         except Exception as e:
-            logger.error(f"Error removing tray: {e}")
+            logger.error(f"Error showing item properties: {e}")
     
-    def rename_tray(self, tray_data):
-        """Rename tray"""
+    def remove_item(self, item_data):
+        """Remove item"""
         try:
-            new_name = simpledialog.askstring("Rename Tray", "Enter new name:", initialvalue=tray_data['name'])
-            if new_name:
-                tray_data['name'] = new_name
+            if messagebox.askyesno("Confirm Remove", f"Remove '{item_data['name']}' from taskbar?"):
+                self.items = [item for item in self.items if item['id'] != item_data['id']]
                 self.save_config()
                 self.refresh_toolbar()
         except Exception as e:
-            logger.error(f"Error renaming tray: {e}")
+            logger.error(f"Error removing item: {e}")
     
     def refresh_toolbar(self):
         """Refresh taskbar"""
         try:
+            # Clear existing buttons
             for widget in self.scrollable_frame.winfo_children():
                 widget.destroy()
             
-            for script in self.scripts:
-                self.add_script_button(script)
-            for tray in self.trays:
-                self.add_tray_button(tray)
+            # Add all items back
+            for item in self.items:
+                self.add_item_button(item)
                 
         except Exception as e:
             logger.error(f"Error refreshing taskbar: {e}")
+    
+    def toggle_log_viewer(self):
+        """Toggle log viewer visibility"""
+        if self.log_viewer:
+            self.log_viewer.toggle_visibility()
     
     def bind_events(self):
         """Bind event handlers"""
         try:
             self.root.bind("<Button-3>", self.show_main_context_menu)
+            # Bind mouse wheel to horizontal scrolling
+            self.canvas.bind("<MouseWheel>", self.on_mousewheel)
         except Exception as e:
             logger.error(f"Error binding events: {e}")
+    
+    def on_mousewheel(self, event):
+        """Handle mouse wheel for horizontal scrolling"""
+        try:
+            self.canvas.xview_scroll(int(-1*(event.delta/120)), "units")
+        except Exception as e:
+            logger.error(f"Error handling mouse wheel: {e}")
     
     def show_main_context_menu(self, event):
         """Show main context menu"""
         try:
-            menu = tk.Menu(self.root, tearoff=0)
-            menu.add_command(label="Add Script", command=self.add_script)
-            menu.add_command(label="Add Tray", command=self.add_tray)
+            menu = tk.Menu(self.root, tearoff=0,
+                          bg=self.theme.get_color('bg_tertiary'),
+                          fg=self.theme.get_color('text'))
+            menu.add_command(label="Add File", command=self.add_file)
+            menu.add_command(label="Add Folder", command=self.add_folder)
             menu.add_separator()
+            menu.add_command(label="Clear Logs", command=lambda: self.execution_logger.clear_logs())
             menu.add_command(label="Settings", command=self.show_settings)
             menu.add_separator()
             menu.add_command(label="Exit", command=self.root.quit)
@@ -1182,56 +1078,36 @@ class ModernTaskbar:
         except Exception as e:
             logger.error(f"Error showing context menu: {e}")
     
-    def add_script(self):
-        """Add new script"""
+    def add_file(self):
+        """Add new file"""
         try:
             file_path = filedialog.askopenfilename(
-                title="Select Script",
+                title="Select File",
                 filetypes=[
+                    ("All files", "*.*"),
                     ("Python files", "*.py"),
                     ("Batch files", "*.bat"),
                     ("PowerShell files", "*.ps1"),
                     ("JavaScript files", "*.js"),
                     ("Executable files", "*.exe"),
-                    ("All files", "*.*")
+                    ("Text files", "*.txt"),
                 ]
             )
             
             if file_path:
-                script_data = {
-                    'id': str(uuid.uuid4()),
-                    'name': os.path.splitext(os.path.basename(file_path))[0],
-                    'path': file_path,
-                    'type': 'executable' if file_path.lower().endswith(('.exe', '.bat', '.py', '.ps1', '.js')) else 'file',
-                    'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                
-                self.scripts.append(script_data)
-                self.save_config()
-                self.add_script_button(script_data)
+                self.add_item_from_path(file_path)
                 
         except Exception as e:
-            logger.error(f"Error adding script: {e}")
+            logger.error(f"Error adding file: {e}")
     
-    def add_tray(self):
-        """Add new tray"""
+    def add_folder(self):
+        """Add new folder"""
         try:
-            tray_name = simpledialog.askstring("Add Tray", "Enter tray name:")
-            if tray_name:
-                tray_data = {
-                    'id': str(uuid.uuid4()),
-                    'name': tray_name,
-                    'items': [],
-                    'geometry': "1000x700+100+100",
-                    'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                
-                self.trays.append(tray_data)
-                self.save_config()
-                self.add_tray_button(tray_data)
-                
+            folder_path = filedialog.askdirectory()
+            if folder_path:
+                self.add_item_from_path(folder_path)
         except Exception as e:
-            logger.error(f"Error adding tray: {e}")
+            logger.error(f"Error adding folder: {e}")
     
     def show_settings(self):
         """Show settings dialog"""
@@ -1250,6 +1126,7 @@ class ModernTaskbar:
                     fg=self.theme.get_color('text_accent'),
                     font=('Segoe UI', 14, 'bold')).pack(pady=10)
             
+            # Transparency setting
             trans_frame = tk.Frame(frame, bg=self.theme.get_color('bg'))
             trans_frame.pack(fill=tk.X, pady=10)
             
@@ -1267,7 +1144,8 @@ class ModernTaskbar:
                                  highlightthickness=0)
             trans_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
             
-            info_text = f"Scripts: {len(self.scripts)}\nTrays: {len(self.trays)}\nOpen Trays: {len(self.tray_windows)}"
+            # Stats
+            info_text = f"Total Items: {len(self.items)}\nExecution Logs: {len(self.execution_logger.get_logs())}"
             tk.Label(frame, text=info_text,
                     bg=self.theme.get_color('bg'),
                     fg=self.theme.get_color('text_secondary'),
@@ -1292,8 +1170,7 @@ class ModernTaskbar:
             if os.path.exists(self.config_file):
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-                    self.scripts = config.get('scripts', [])
-                    self.trays = config.get('trays', [])
+                    self.items = config.get('items', [])
                     self.transparency = config.get('transparency', 95)
         except Exception as e:
             logger.error(f"Error loading config: {e}")
@@ -1302,8 +1179,7 @@ class ModernTaskbar:
         """Save configuration"""
         try:
             config = {
-                'scripts': self.scripts,
-                'trays': self.trays,
+                'items': self.items,
                 'transparency': self.transparency
             }
             with open(self.config_file, 'w', encoding='utf-8') as f:
