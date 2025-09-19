@@ -1,0 +1,169 @@
+2025-09-19 10:28:46,230 - ERROR - Application failed to start: no display name and no $DISPLAY environment variable
+2025-09-19 10:30:14,852 - INFO - Translating 4 core items
+2025-09-19 10:30:14,852 - INFO - Translation complete: 4 core translations
+2025-09-19 10:30:14,853 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:30:14,853 - INFO -   '用户管理器' -> 'user'
+2025-09-19 10:30:14,853 - INFO -   '网络连接' -> 'connect'
+2025-09-19 10:30:14,853 - INFO -   '配置文件' -> 'configuration file'
+2025-09-19 10:30:14,853 - INFO - Translating 5 string items
+2025-09-19 10:30:14,853 - INFO - Translation complete: 5 string translations
+2025-09-19 10:30:14,853 - INFO -   '代理网络的地址，打开你的代理软件查看代理协议' -> 'Proxy network address open your proxy software to view the proxy protocol.'
+2025-09-19 10:30:14,853 - INFO -   '环境变量配置格式见docker-compose.yml' -> 'Variable.'
+2025-09-19 10:30:14,853 - INFO -   '在此处填写APIKEY' -> 'Fill in here.'
+2025-09-19 10:30:14,853 - INFO -   '请求失败，连接超时' -> 'Request failed connection timeout.'
+2025-09-19 10:30:14,853 - INFO -   '操作完成，请检查结果' -> 'Operation completed check.'
+2025-09-19 10:30:14,853 - INFO - Translating 3 string items
+2025-09-19 10:30:14,853 - INFO - Translation complete: 3 string translations
+2025-09-19 10:30:14,853 - INFO -   '这是一个测试函数' -> 'Function.'
+2025-09-19 10:30:14,853 - INFO -   '初始化系统配置' -> 'Configuration.'
+2025-09-19 10:30:14,853 - INFO -   '检查网络连接状态' -> 'Check.'
+2025-09-19 10:30:14,862 - INFO - Translating 9 core items
+2025-09-19 10:30:14,862 - INFO - Translation complete: 8 core translations
+2025-09-19 10:30:14,862 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:30:14,862 - INFO -   '用户管理器' -> 'user'
+2025-09-19 10:30:14,862 - INFO -   '添加用户' -> 'user'
+2025-09-19 10:30:14,862 - INFO -   '代理地址' -> 'address'
+2025-09-19 10:30:14,862 - INFO -   '管理器' -> 'chinese_identifier_868'
+2025-09-19 10:30:14,862 - INFO - Translating 16 string items
+2025-09-19 10:30:14,862 - INFO - Translation complete: 16 string translations
+2025-09-19 10:30:14,862 - INFO -   '验证代理设置' -> 'Settings.'
+2025-09-19 10:30:14,862 - INFO -   '检查代理地址' -> 'Check.'
+2025-09-19 10:30:14,862 - INFO -   '添加新用户到列表' -> 'User.'
+2025-09-19 10:30:14,862 - INFO -   '这是一个测试模块' -> 'Module.'
+2025-09-19 10:30:14,863 - INFO -   '用于验证翻译功能' -> 'Validate.'
+2025-09-19 10:30:14,865 - INFO - Translating 1 core items
+2025-09-19 10:30:14,865 - INFO - Translation complete: 1 core translations
+2025-09-19 10:30:14,865 - INFO -   '检查代理' -> 'check'
+2025-09-19 10:30:14,865 - INFO - Translating 23 string items
+2025-09-19 10:30:14,865 - INFO - Translation complete: 22 string translations
+2025-09-19 10:30:14,865 - INFO -   '代理网络的地址' -> 'proxy network address'
+2025-09-19 10:30:14,865 - INFO -   '打开你的代理软件查看代理协议' -> 'open your proxy software to view the proxy protocol'
+2025-09-19 10:30:14,865 - INFO -   '地址' -> 'address'
+2025-09-19 10:30:14,865 - INFO -   '和端口' -> 'Port.'
+2025-09-19 10:30:14,865 - INFO -   '填写格式是' -> 'the fill format is'
+2025-09-19 10:31:58,275 - INFO - Translating 4 core items
+2025-09-19 10:31:58,275 - INFO - Translation complete: 4 core translations
+2025-09-19 10:31:58,275 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:31:58,276 - INFO -   '用户管理器' -> 'user'
+2025-09-19 10:31:58,276 - INFO -   '网络连接' -> 'connect'
+2025-09-19 10:31:58,276 - INFO -   '配置文件' -> 'configuration file'
+2025-09-19 10:31:58,276 - INFO - Translating 5 string items
+2025-09-19 10:31:58,276 - INFO - Translation complete: 5 string translations
+2025-09-19 10:31:58,276 - INFO -   '代理网络的地址，打开你的代理软件查看代理协议' -> 'Proxy network address open your proxy software to view the proxy protocol.'
+2025-09-19 10:31:58,276 - INFO -   '环境变量配置格式见docker-compose.yml' -> 'Variable.'
+2025-09-19 10:31:58,276 - INFO -   '在此处填写APIKEY' -> 'Fill in here.'
+2025-09-19 10:31:58,276 - INFO -   '请求失败，连接超时' -> 'Request failed connection timeout.'
+2025-09-19 10:31:58,276 - INFO -   '操作完成，请检查结果' -> 'Operation completed check.'
+2025-09-19 10:31:58,276 - INFO - Translating 3 string items
+2025-09-19 10:31:58,276 - INFO - Translation complete: 3 string translations
+2025-09-19 10:31:58,276 - INFO -   '这是一个测试函数' -> 'Function.'
+2025-09-19 10:31:58,276 - INFO -   '初始化系统配置' -> 'Configuration.'
+2025-09-19 10:31:58,276 - INFO -   '检查网络连接状态' -> 'Check.'
+2025-09-19 10:31:58,282 - INFO - Translating 9 core items
+2025-09-19 10:31:58,283 - INFO - Translation complete: 8 core translations
+2025-09-19 10:31:58,283 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:31:58,283 - INFO -   '用户管理器' -> 'user'
+2025-09-19 10:31:58,283 - INFO -   '添加用户' -> 'user'
+2025-09-19 10:31:58,283 - INFO -   '代理地址' -> 'address'
+2025-09-19 10:31:58,283 - INFO -   '管理器' -> 'chinese_identifier_868'
+2025-09-19 10:31:58,283 - INFO - Translating 16 string items
+2025-09-19 10:31:58,283 - INFO - Translation complete: 16 string translations
+2025-09-19 10:31:58,283 - INFO -   '验证代理设置' -> 'Settings.'
+2025-09-19 10:31:58,283 - INFO -   '检查代理地址' -> 'Check.'
+2025-09-19 10:31:58,283 - INFO -   '添加新用户到列表' -> 'User.'
+2025-09-19 10:31:58,283 - INFO -   '这是一个测试模块' -> 'Module.'
+2025-09-19 10:31:58,283 - INFO -   '用于验证翻译功能' -> 'Validate.'
+2025-09-19 10:31:58,285 - INFO - Translating 1 core items
+2025-09-19 10:31:58,285 - INFO - Translation complete: 1 core translations
+2025-09-19 10:31:58,286 - INFO -   '检查代理' -> 'check'
+2025-09-19 10:31:58,286 - INFO - Translating 23 string items
+2025-09-19 10:31:58,286 - INFO - Translation complete: 22 string translations
+2025-09-19 10:31:58,286 - INFO -   '代理网络的地址' -> 'proxy network address'
+2025-09-19 10:31:58,286 - INFO -   '打开你的代理软件查看代理协议' -> 'open your proxy software to view the proxy protocol'
+2025-09-19 10:31:58,286 - INFO -   '地址' -> 'address'
+2025-09-19 10:31:58,286 - INFO -   '和端口' -> 'Port.'
+2025-09-19 10:31:58,286 - INFO -   '填写格式是' -> 'the fill format is'
+2025-09-19 10:33:14,293 - INFO - Translating 4 core items
+2025-09-19 10:33:14,293 - INFO - Translation complete: 4 core translations
+2025-09-19 10:33:14,294 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:33:14,294 - INFO -   '用户管理器' -> 'user_manager'
+2025-09-19 10:33:14,294 - INFO -   '网络连接' -> 'connect'
+2025-09-19 10:33:14,294 - INFO -   '配置文件' -> 'configuration file'
+2025-09-19 10:33:14,294 - INFO - Translating 5 string items
+2025-09-19 10:33:14,294 - INFO - Translation complete: 5 string translations
+2025-09-19 10:33:14,294 - INFO -   '代理网络的地址，打开你的代理软件查看代理协议' -> 'Proxy network address open your proxy software to view the proxy protocol.'
+2025-09-19 10:33:14,294 - INFO -   '环境变量配置格式见docker-compose.yml' -> 'Variable.'
+2025-09-19 10:33:14,294 - INFO -   '在此处填写APIKEY' -> 'Fill in here.'
+2025-09-19 10:33:14,294 - INFO -   '请求失败，连接超时' -> 'Request failed connection timeout.'
+2025-09-19 10:33:14,294 - INFO -   '操作完成，请检查结果' -> 'Operation completed check.'
+2025-09-19 10:33:14,294 - INFO - Translating 3 string items
+2025-09-19 10:33:14,294 - INFO - Translation complete: 3 string translations
+2025-09-19 10:33:14,294 - INFO -   '这是一个测试函数' -> 'Function.'
+2025-09-19 10:33:14,294 - INFO -   '初始化系统配置' -> 'Configuration.'
+2025-09-19 10:33:14,294 - INFO -   '检查网络连接状态' -> 'Check.'
+2025-09-19 10:33:14,300 - INFO - Translating 9 core items
+2025-09-19 10:33:14,300 - INFO - Translation complete: 8 core translations
+2025-09-19 10:33:14,300 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:33:14,300 - INFO -   '用户管理器' -> 'user_manager'
+2025-09-19 10:33:14,300 - INFO -   '添加用户' -> 'add_user'
+2025-09-19 10:33:14,301 - INFO -   '代理地址' -> 'proxy address'
+2025-09-19 10:33:14,301 - INFO -   '管理器' -> 'manager'
+2025-09-19 10:33:14,301 - INFO - Translating 16 string items
+2025-09-19 10:33:14,301 - INFO - Translation complete: 16 string translations
+2025-09-19 10:33:14,301 - INFO -   '验证代理设置' -> 'Settings.'
+2025-09-19 10:33:14,301 - INFO -   '检查代理地址' -> 'Check.'
+2025-09-19 10:33:14,301 - INFO -   '添加新用户到列表' -> 'add new user to list'
+2025-09-19 10:33:14,301 - INFO -   '这是一个测试模块' -> 'this is a test module'
+2025-09-19 10:33:14,301 - INFO -   '用于验证翻译功能' -> 'used to verify translation functionality'
+2025-09-19 10:33:14,303 - INFO - Translating 1 core items
+2025-09-19 10:33:14,303 - INFO - Translation complete: 1 core translations
+2025-09-19 10:33:14,303 - INFO -   '检查代理' -> 'check'
+2025-09-19 10:33:14,303 - INFO - Translating 23 string items
+2025-09-19 10:33:14,303 - INFO - Translation complete: 22 string translations
+2025-09-19 10:33:14,303 - INFO -   '代理网络的地址' -> 'proxy network address'
+2025-09-19 10:33:14,303 - INFO -   '打开你的代理软件查看代理协议' -> 'open your proxy software to view the proxy protocol'
+2025-09-19 10:33:14,304 - INFO -   '地址' -> 'address'
+2025-09-19 10:33:14,304 - INFO -   '和端口' -> 'Port.'
+2025-09-19 10:33:14,304 - INFO -   '填写格式是' -> 'the fill format is'
+2025-09-19 10:33:44,786 - INFO - Translating 4 core items
+2025-09-19 10:33:44,786 - INFO - Translation complete: 4 core translations
+2025-09-19 10:33:44,786 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:33:44,786 - INFO -   '用户管理器' -> 'user_manager'
+2025-09-19 10:33:44,787 - INFO -   '网络连接' -> 'connect'
+2025-09-19 10:33:44,787 - INFO -   '配置文件' -> 'configuration file'
+2025-09-19 10:33:44,787 - INFO - Translating 5 string items
+2025-09-19 10:33:44,787 - INFO - Translation complete: 5 string translations
+2025-09-19 10:33:44,787 - INFO -   '代理网络的地址，打开你的代理软件查看代理协议' -> 'Proxy network address open your proxy software to view the proxy protocol.'
+2025-09-19 10:33:44,787 - INFO -   '环境变量配置格式见docker-compose.yml' -> 'Variable.'
+2025-09-19 10:33:44,787 - INFO -   '在此处填写APIKEY' -> 'Fill in here.'
+2025-09-19 10:33:44,787 - INFO -   '请求失败，连接超时' -> 'Request failed connection timeout.'
+2025-09-19 10:33:44,787 - INFO -   '操作完成，请检查结果' -> 'Operation completed check.'
+2025-09-19 10:33:44,787 - INFO - Translating 3 string items
+2025-09-19 10:33:44,787 - INFO - Translation complete: 3 string translations
+2025-09-19 10:33:44,787 - INFO -   '这是一个测试函数' -> 'Function.'
+2025-09-19 10:33:44,787 - INFO -   '初始化系统配置' -> 'Configuration.'
+2025-09-19 10:33:44,787 - INFO -   '检查网络连接状态' -> 'Check.'
+2025-09-19 10:33:44,793 - INFO - Translating 9 core items
+2025-09-19 10:33:44,793 - INFO - Translation complete: 8 core translations
+2025-09-19 10:33:44,793 - INFO -   '检查代理配置' -> 'configuration'
+2025-09-19 10:33:44,794 - INFO -   '用户管理器' -> 'user_manager'
+2025-09-19 10:33:44,794 - INFO -   '添加用户' -> 'add_user'
+2025-09-19 10:33:44,794 - INFO -   '代理地址' -> 'proxy address'
+2025-09-19 10:33:44,794 - INFO -   '管理器' -> 'manager'
+2025-09-19 10:33:44,794 - INFO - Translating 16 string items
+2025-09-19 10:33:44,794 - INFO - Translation complete: 16 string translations
+2025-09-19 10:33:44,794 - INFO -   '验证代理设置' -> 'Settings.'
+2025-09-19 10:33:44,794 - INFO -   '检查代理地址' -> 'Check.'
+2025-09-19 10:33:44,794 - INFO -   '添加新用户到列表' -> 'add new user to list'
+2025-09-19 10:33:44,794 - INFO -   '这是一个测试模块' -> 'this is a test module'
+2025-09-19 10:33:44,794 - INFO -   '用于验证翻译功能' -> 'used to verify translation functionality'
+2025-09-19 10:33:44,796 - INFO - Translating 1 core items
+2025-09-19 10:33:44,796 - INFO - Translation complete: 1 core translations
+2025-09-19 10:33:44,796 - INFO -   '检查代理' -> 'check'
+2025-09-19 10:33:44,796 - INFO - Translating 23 string items
+2025-09-19 10:33:44,796 - INFO - Translation complete: 22 string translations
+2025-09-19 10:33:44,797 - INFO -   '代理网络的地址' -> 'proxy network address'
+2025-09-19 10:33:44,797 - INFO -   '打开你的代理软件查看代理协议' -> 'open your proxy software to view the proxy protocol'
+2025-09-19 10:33:44,797 - INFO -   '地址' -> 'address'
+2025-09-19 10:33:44,797 - INFO -   '和端口' -> 'Port.'
+2025-09-19 10:33:44,797 - INFO -   '填写格式是' -> 'the fill format is'
