@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "toolbar-translate"
+version = "0.1.0"
+description = "Codebase translation tooling (map, translate, export, validate, apply)"
+authors = [{name = "Zeeeepa"}]
+requires-python = ">=3.10"
+readme = "README.md"
+
+[project.optional-dependencies]
+translate = ["aiohttp>=3.9", "selenium>=4.0"]
+
+[project.scripts]
+translate = "translate.cli:main"
+
+[tool.setuptools]
+packages = ["translate"]
+include-package-data = true
+
