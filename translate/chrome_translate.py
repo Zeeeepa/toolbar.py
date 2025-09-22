@@ -785,7 +785,7 @@ class ChromeTranslator:
                             logger.debug(f"DOM Text: '{original}' -> '{current}'")
                 except StaleElementReferenceException:
                     continue
-            except Exception as e:
+        except Exception as e:
                 logger.warning(f"Error in DOM text extraction: {str(e)}")
         
         return translations

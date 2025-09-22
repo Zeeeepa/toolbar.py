@@ -209,7 +209,7 @@ class ChineseExtractor:
                             identifiers.append(part)
                 for alias in node.names:
                     if ChineseExtractor.contains_chinese(alias.name):
-                        identifiers.append(alias)
+                        identifiers.append(alias.name)
 
             # Extract string literals
             string_value = None
